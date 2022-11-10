@@ -17,8 +17,24 @@ catch
     close all force hidden
 end
 warning('off', 'MATLAB:MKDIR:DirectoryExists');
+warning('off','serialport:serialport:ReadlineWarning');
 
-% get basica data path
+% get open COM port for grbl
+% GRBL_com_port = "COM3"; % manually use this if it breaks
+% finds the correct COM port
+% this might not work with com ports 10 and above
+% and assumes that there is only one COM device connected at any given time
+GRBL_com_port = serialportlist();
+GRBL_com_port = GRBL_com_port(~contains(GRBL_com_port,"COM1"));
+if isempty(GRBL_com_port)
+    error('Error: No GRBL device found')
+else
+    disp(['Found COM ports ', char(GRBL_com_port)])
+    GRBL_com_port = GRBL_com_port(1);
+    disp(['Using COM port ' char(GRBL_com_port) ' to connect to GRBL'])
+end
+
+% get basics data path
 curr_path = pwd;
 mkdir(fullfile(curr_path, 'Data'));
 data_path = fullfile(curr_path, 'Data');
@@ -29,58 +45,45 @@ dlg_choice = questdlg({'Select Current Experiment or Start New?',...
 
 if isequal(dlg_choice,'Select')
     session_path = select_experiment_func(data_path);
-    session_wells = select_wells_to_image();
+    session_wells = select_wells_to_image_func();
 elseif isequal(dlg_choice,'Start New') %Input Experiment name
-    start_new_experiment(data_path)
+    start_new_experiment_func(data_path)
     session_path = select_experiment_func(data_path);
-    session_wells = select_wells_to_image();
+    session_wells = select_wells_to_image_func();
     % this promps the user to create the basic structure of an experiment
 else %If no selection
     dlg_choice = [];
     error('Experiment not selected.  try again')
 end
 
-disp('Starting data setup')
-%find how many sessions exist, add on or create new
 mkdir(session_path)
 
-% number_images_per_session = 3; % usually 25 12bef 12aft
-% time_between_images = 0; % usually 5
-% warm_up_amout = 10; %60*5;
-% red_DAC = 0;
-% % blue_DAC = 1;
-% 
-% % this needs to be added to the dependencies
-% vid = videoinput('tisimaq_r2013_64', 1, 'Y800 (5472x3648)');
-% src = getselectedsource(vid);
-% 
-% vid.FramesPerTrigger = 1;
-% 
-% % it takes into account amount of time that has passed during each session
-% % as well, so if you want recording every hour just put in 3600 seconds
-% 
-% % make sure everything is off
-% LabJack_cycle(red_DAC,0)
-% pause(0.1);
-% 
-% images_per_iter = (number_images_per_session-1)/2;
+disp('Beginning experiment')
 
-% turn background light on for 2 minutes to help stabalize image quality
+sorted_session_wells = sortrows(session_wells,"movement_order");
+num_wells_to_image = height(session_wells);
 
-disp(['Beginning experiment'])
-% % warm up red leds
-% disp('Warming up LEDs');
-% LabJack_cycle(red_DAC,5)
-% pause(warm_up_amout);
-% 
-% images = take_N_images_every_X_seconds(src,vid,images_per_iter,time_between_images);
-% % write images to disk
-% disp('Recording data')
-% 
-% write_images_to_session_new(session_path, images)
-% 
-% LabJack_cycle(red_DAC,0);
+disp('Homing GRBL')
+BAUD_RATE = 115200;
+ser = serialport(GRBL_com_port,BAUD_RATE);
+ser.Timeout = 0.1;
+stream_gcode_commands(ser,"$H",1)
 
+% send wakeup and homing gcode 
+for i = 1:num_wells_to_image
+
+    this_well_table = sorted_session_wells(i,:);
+    this_well_label = char(this_well_table.label);
+    this_well_coords = [this_well_table.x,this_well_table.y];
+
+    disp(['Moving to well ' this_well_label ' at coords -- ' num2str(this_well_coords)])
+    this_gcode = coordinates_to_G0_gcode(this_well_coords);
+
+    disp(this_gcode)
+
+    pause(0.5)
+
+end
 
 disp('Done');
 
@@ -152,7 +155,7 @@ disp('This sessions collected data will be exported to:')
 disp(output_path)
 end
 
-function start_new_experiment(data_path)
+function start_new_experiment_func(data_path)
 
 prompt = 'What is the name of the experiment?';
 answer = inputdlg(prompt,'Experiment Name',[1 35]);
@@ -196,7 +199,7 @@ disp('Finished creating new experiment')
 
 end
 
-function selected_wells = select_wells_to_image()
+function selected_wells = select_wells_to_image_func()
 
 disp('selecting wells to image in this session')
 decoder = readtable("well_key.csv","VariableNamingRule","preserve");
@@ -247,9 +250,53 @@ else %If no selection
     error('Nothing selected.  try again')
 end
 
+
 l = strjoin(string(rot90(selected_wells.label)),',');
 
 disp('Imaging these wells:')
 disp(l)
 
 end
+
+function this_gcode = coordinates_to_G0_gcode(this_coordinate)
+
+x_val = this_coordinate(1);
+y_val = this_coordinate(2);
+
+this_gcode = char(['G0 X' num2str(x_val) ' Y' num2str(y_val)]);
+
+end
+
+% number_images_per_session = 3; % usually 25 12bef 12aft
+% time_between_images = 0; % usually 5
+% warm_up_amout = 10; %60*5;
+% red_DAC = 0;
+% % blue_DAC = 1;
+% 
+% % this needs to be added to the dependencies
+% vid = videoinput('tisimaq_r2013_64', 1, 'Y800 (5472x3648)');
+% src = getselectedsource(vid);
+% 
+% vid.FramesPerTrigger = 1;
+% 
+% % it takes into account amount of time that has passed during each session
+% % as well, so if you want recording every hour just put in 3600 seconds
+% 
+% % make sure everything is off
+% LabJack_cycle(red_DAC,0)
+% pause(0.1);
+% 
+% images_per_iter = (number_images_per_session-1)/2;
+% turn background light on for 2 minutes to help stabalize image quality
+% % warm up red leds
+% disp('Warming up LEDs');
+% LabJack_cycle(red_DAC,5)
+% pause(warm_up_amout);
+% 
+% images = take_N_images_every_X_seconds(src,vid,images_per_iter,time_between_images);
+% % write images to disk
+% disp('Recording data')
+% 
+% write_images_to_session_new(session_path, images)
+% 
+% LabJack_cycle(red_DAC,0);
