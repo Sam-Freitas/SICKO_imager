@@ -196,7 +196,6 @@ disp('Finished creating new experiment')
 
 end
 
-
 function selected_wells = select_wells_to_image()
 
 disp('selecting wells to image in this session')
