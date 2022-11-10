@@ -58,7 +58,7 @@ function wait_for_movement_completion(ser,cleaned_line)
 
 pause(1)
 
-if ~isequal(cleaned_line,'$X') && ~isequal(cleaned_line,'$$')
+if ~isequal(cleaned_line,'$X') && ~isequal(cleaned_line,'$$') && ~isequal(cleaned_line,'$H')
 
     idle_counter = 0;
 
