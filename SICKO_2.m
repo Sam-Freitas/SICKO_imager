@@ -42,7 +42,7 @@ sorted_session_wells = sortrows(session_wells,"movement_order");
 num_wells_to_image = height(session_wells);
 
 disp('Homing GRBL')
-% stream_gcode_commands(ser,"$H",1)
+stream_gcode_commands(ser,"$H",1)
 
 % send wakeup and homing gcode 
 for i = 1:num_wells_to_image
