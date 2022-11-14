@@ -1,38 +1,16 @@
-clc
-try
-    try
-        stop(vid)
-        flushdata(vid);
-        delete(vid);
-        clear all
-        close all force hidden
-    catch
-        flushdata(vid);
-        delete(vid);
-        clear all
-        close all force hidden
-    end
-catch
-    clear all
-    close all force hidden
-end
+pause(0.1); clear all; close all force hidden
+disp('Start')
+% if matlab cant connect to the GRBL device then restart/powercycle everything and
+% plug/unplug the GRBL device
 warning('off', 'MATLAB:MKDIR:DirectoryExists');
 warning('off','serialport:serialport:ReadlineWarning');
 
-% get open COM port for grbl
-% GRBL_com_port = "COM3"; % manually use this if it breaks
-% finds the correct COM port
-% this might not work with com ports 10 and above
-% and assumes that there is only one COM device connected at any given time
-GRBL_com_port = serialportlist();
-GRBL_com_port = GRBL_com_port(~contains(GRBL_com_port,"COM1"));
-if isempty(GRBL_com_port)
-    error('Error: No GRBL device found')
-else
-    disp(['Found COM ports ', char(GRBL_com_port)])
-    GRBL_com_port = GRBL_com_port(1);
-    disp(['Using COM port ' char(GRBL_com_port) ' to connect to GRBL'])
-end
+% get open COM port for grbl and set timeout to 0.1
+GRBL_com_port = get_grbl_COM_port();
+BAUD_RATE = 115200;
+ser = serialport(GRBL_com_port,BAUD_RATE);
+disp(['Connected to ' char(GRBL_com_port)])
+ser.Timeout = 0.1;
 
 % get basics data path
 curr_path = pwd;
@@ -64,10 +42,7 @@ sorted_session_wells = sortrows(session_wells,"movement_order");
 num_wells_to_image = height(session_wells);
 
 disp('Homing GRBL')
-BAUD_RATE = 115200;
-ser = serialport(GRBL_com_port,BAUD_RATE);
-ser.Timeout = 0.1;
-stream_gcode_commands(ser,"$H",1)
+% stream_gcode_commands(ser,"$H",1)
 
 % send wakeup and homing gcode 
 for i = 1:num_wells_to_image
@@ -77,7 +52,7 @@ for i = 1:num_wells_to_image
     this_well_coords = [this_well_table.x,this_well_table.y];
 
     disp(['Moving to well ' this_well_label ' at coords -- ' num2str(this_well_coords)])
-    this_gcode = coordinates_to_G0_gcode(this_well_coords);
+    this_gcode = coordinates_to_G0_gcode(this_well_coords,'X','Y');
 
     disp(this_gcode)
 
@@ -86,6 +61,27 @@ for i = 1:num_wells_to_image
 end
 
 disp('Done');
+
+function clear_and_close_everything()
+clc
+try
+    try
+        stop(vid)
+        flushdata(vid);
+        delete(vid);
+        clear all
+        close all force hidden
+    catch
+        flushdata(vid);
+        delete(vid);
+        clear all
+        close all force hidden
+    end
+catch
+    clear all
+    close all force hidden
+end
+end
 
 function output_path = select_experiment_func(data_path)
 % get the dir of the data folder to select a specific experiment
@@ -251,19 +247,43 @@ else %If no selection
 end
 
 
-l = strjoin(string(rot90(selected_wells.label)),',');
-
+selected_wells_labels = string(selected_wells.label)';
+num_display = ceil(numel(selected_wells_labels)/8)*8;
+labels_string_array = strings([num_display/8,8]);
+for i = 1:numel(selected_wells_labels)
+    labels_string_array(i) = selected_wells_labels(i);
+end
+l = cell(num_display/8,1);
 disp('Imaging these wells:')
-disp(l)
+for i = 1:num_display/8
+    l{i} = strjoin(labels_string_array(i,:),',');
+    disp(l{i})
+end
 
 end
 
-function this_gcode = coordinates_to_G0_gcode(this_coordinate)
+function this_gcode = coordinates_to_G0_gcode(this_coordinate,coord1,coord2)
 
 x_val = this_coordinate(1);
 y_val = this_coordinate(2);
 
-this_gcode = char(['G0 X' num2str(x_val) ' Y' num2str(y_val)]);
+this_gcode = char(['G0 ' char(coord1) num2str(x_val) ' ' char(coord2) num2str(y_val)]);
+
+end
+
+function GRBL_com_port = get_grbl_COM_port()
+% GRBL_com_port = "COM3"; % manually use this if it breaks
+% finds the correct COM port
+% this might not work with com ports 10 and above
+% and assumes that there is only one COM device connected at any given time
+GRBL_com_port = serialportlist();
+GRBL_com_port = GRBL_com_port(~contains(GRBL_com_port,"COM1"));
+if isempty(GRBL_com_port)
+    error('Error: No GRBL device found')
+else
+    disp(['Found COM ports ', char(GRBL_com_port)])
+    GRBL_com_port = GRBL_com_port(1);
+end
 
 end
 
