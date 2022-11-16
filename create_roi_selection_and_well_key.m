@@ -3,6 +3,9 @@
 
 plate_type = 't'; % 'w' or 't'
 
+bottom_left = [39.9,50.4];
+top_right = [13.5,6.5];
+  
 cols_terasaki = upper(["a","b","c","d","e","f","g","h"]);
 rows_terasaki = ["1","2","3","4","5","6","7","8","9","10","11","12"];
 
@@ -49,13 +52,20 @@ end
 
 % this creates the way in which the wells will be imaged
 % in a snake pattern starting from the bottom right
+x_delta = (top_right(1)-bottom_left(1))/8;
+y_delta = (top_right(2)-bottom_left(2))/12;
+
 movement_index = 1;
 row_counter = 1;
 pos = zeros(96,1);
+current_pos = bottom_left;
 for i = 12:-1:1
+    disp(current_pos)
     % flip the starting point every time it goes to a new row
+    current_pos(2) = current_pos(2)+(y_delta*(row_counter-1));
     if iseven(i)
         for j = 1:8
+            current_pos(1) = current_pos(1)+(x_delta*(j-1));
             pos(movement_index) = i + (j-1)*12;
 
             well_key{pos(movement_index),3} = movement_index;
@@ -66,6 +76,7 @@ for i = 12:-1:1
         end
     else
         for j = 8:-1:1
+            current_pos(1) = current_pos(1)+(x_delta*(j-1));
             pos(movement_index) = i + (j-1)*12;
 
             well_key{pos(movement_index),3} = movement_index;
