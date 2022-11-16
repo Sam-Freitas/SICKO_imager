@@ -44,7 +44,7 @@ num_wells_to_image = height(session_wells);
 disp('Homing GRBL')
 stream_gcode_commands(ser,"$H",1)
 
-% send wakeup and homing gcode 
+% send wakeup and homing gcode
 for i = 1:num_wells_to_image
 
     this_well_table = sorted_session_wells(i,:);
@@ -277,13 +277,35 @@ function GRBL_com_port = get_grbl_COM_port()
 % this might not work with com ports 10 and above
 % and assumes that there is only one COM device connected at any given time
 GRBL_com_port = serialportlist();
-GRBL_com_port = GRBL_com_port(~contains(GRBL_com_port,"COM1"));
-if isempty(GRBL_com_port)
-    error('Error: No GRBL device found')
+
+if ismac
+    disp('MacOS detected')
+    remove_cu = contains(lower(GRBL_com_port),{'cu.','lan','bluetooth'});
+    GRBL_com_port = GRBL_com_port(~remove_cu);
+
+    if isempty(GRBL_com_port)
+        error('Error: No GRBL device found')
+    else
+        disp(['Found COM ports ', char(GRBL_com_port)])
+        GRBL_com_port = GRBL_com_port(1);
+    end
+    % Code to run on Mac platform
+elseif isunix
+    % Code to run on Linux platform
+    % not currently supported
+elseif ispc
+    disp('Windows detected')
+    GRBL_com_port = GRBL_com_port(~contains(GRBL_com_port,"COM1"));
+    if isempty(GRBL_com_port)
+        error('Error: No GRBL device found')
+    else
+        disp(['Found COM ports ', char(GRBL_com_port)])
+        GRBL_com_port = GRBL_com_port(1);
+    end
 else
-    disp(['Found COM ports ', char(GRBL_com_port)])
-    GRBL_com_port = GRBL_com_port(1);
+    disp('Platform not supported')
 end
+
 
 end
 
@@ -292,31 +314,31 @@ end
 % warm_up_amout = 10; %60*5;
 % red_DAC = 0;
 % % blue_DAC = 1;
-% 
+%
 % % this needs to be added to the dependencies
 % vid = videoinput('tisimaq_r2013_64', 1, 'Y800 (5472x3648)');
 % src = getselectedsource(vid);
-% 
+%
 % vid.FramesPerTrigger = 1;
-% 
+%
 % % it takes into account amount of time that has passed during each session
 % % as well, so if you want recording every hour just put in 3600 seconds
-% 
+%
 % % make sure everything is off
 % LabJack_cycle(red_DAC,0)
 % pause(0.1);
-% 
+%
 % images_per_iter = (number_images_per_session-1)/2;
 % turn background light on for 2 minutes to help stabalize image quality
 % % warm up red leds
 % disp('Warming up LEDs');
 % LabJack_cycle(red_DAC,5)
 % pause(warm_up_amout);
-% 
+%
 % images = take_N_images_every_X_seconds(src,vid,images_per_iter,time_between_images);
 % % write images to disk
 % disp('Recording data')
-% 
+%
 % write_images_to_session_new(session_path, images)
-% 
+%
 % LabJack_cycle(red_DAC,0);

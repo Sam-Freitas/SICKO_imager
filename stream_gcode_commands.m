@@ -86,6 +86,28 @@ if ~isequal(cleaned_line,'$X') && ~isequal(cleaned_line,'$$') && ~isequal(cleane
 
     end
 
+elseif isequal(cleaned_line,'$H')
+    disp('Homing sequence detected')
+    pause(0.1)
+    
+    homing_wait_time = 60;
+    count = 0; count_max = 600;
+    tic;
+    while (toc < homing_wait_time) && (count < count_max) % always include a failsafe!
+        count = count + 1;
+        pause(0.1)
+        grbl_out = readline(ser);
+        if ~isempty(grbl_out)
+            break
+        end
+    end
+    
+    if contains(grbl_out,'ok')
+        disp('Homing Sucessful')
+    else
+        error('Homing Error')
+    end
+
 end
 
 end
