@@ -3,9 +3,9 @@
 
 plate_type = 't'; % 'w' or 't'
 
-bottom_left = [39.9,50.4];
-top_right = [13.5,6.5];
-  
+bottom_left = [39.9,50.4];   %A
+top_right = [13.5,6.5];      %B
+
 cols_terasaki = upper(["a","b","c","d","e","f","g","h"]);
 rows_terasaki = ["1","2","3","4","5","6","7","8","9","10","11","12"];
 
@@ -42,6 +42,7 @@ for i = 1:length(Z_cen2)
 
     well_key{i,1} = i;
     well_key{i,2} = Z2(i);
+    well_key{i,3} = i;       %intensity = movement order
 end
 
 I2 = zeros(size(I),'uint8');
@@ -50,55 +51,38 @@ for i = 1:length(Z_cen2)
     I2 = I2 + (uint8(bwareaopen(I==i,250,4))*i);
 end
 
-% this creates the way in which the wells will be imaged
-% in a snake pattern starting from the bottom right
-x_delta = (top_right(1)-bottom_left(1))/8;
-y_delta = (top_right(2)-bottom_left(2))/12;
+% this assigns the well coordinates
 
-movement_index = 1;
-row_counter = 1;
-pos = zeros(96,1);
-current_pos = bottom_left;
-for i = 12:-1:1
-    disp(current_pos)
-    % flip the starting point every time it goes to a new row
-    current_pos(2) = current_pos(2)+(y_delta*(row_counter-1));
-    if iseven(i)
-        for j = 1:8
-            current_pos(1) = current_pos(1)+(x_delta*(j-1));
-            pos(movement_index) = i + (j-1)*12;
+delta_x = (bottom_left(1)-top_right(1))/7;
+delta_y = (bottom_left(2)-top_right(2))/11;
 
-            well_key{pos(movement_index),3} = movement_index;
-            well_key{pos(movement_index),4} = j;
-            well_key{pos(movement_index),5} = row_counter;
+counter = 1;
+j=0;
+k=0;
 
-            movement_index = movement_index + 1;
-        end
-    else
-        for j = 8:-1:1
-            current_pos(1) = current_pos(1)+(x_delta*(j-1));
-            pos(movement_index) = i + (j-1)*12;
 
-            well_key{pos(movement_index),3} = movement_index;
-            well_key{pos(movement_index),4} = j;
-            well_key{pos(movement_index),5} = row_counter;
-            
-            movement_index = movement_index + 1;
-        end
+for c = 1:8
+    for r = 1:12
+
+        well_key{counter, 4} = round((bottom_left(1)-(delta_x*k)),2);  
+        well_key{counter, 5} = round((top_right(2)+(delta_y*j)),2);
+        j = j + 1;
+        counter = counter + 1;
     end
-    row_counter = row_counter + 1;
+    j = 0;
+    k = k+1;
 end
 
 writetable(cell2table(well_key,'VariableNames',well_key_header), 'well_key.csv')
 
 imwrite(I2,'Basic_wells_template_terasaki.png');
 
-function out = iseven(in)
-
-remainder_of_2 = rem(in,2);
-if isequal(remainder_of_2,0)
-    out = 1;
-else
-    out = 0;
-end
-end
+% function out = iseven(in)
+% 
+% remainder_of_2 = rem(in,2);
+% if isequal(remainder_of_2,0)
+%     out = 1;
+% else
+%     out = 0;
+% end
+% end
