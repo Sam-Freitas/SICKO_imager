@@ -55,6 +55,7 @@ for i = 1:num_wells_to_image
     this_gcode = coordinates_to_G0_gcode(this_well_coords,'X','Y');
 
     disp(this_gcode)
+    stream_gcode_commands(ser,string(this_gcode),0)
 
     pause(0.5)
 
