@@ -3,8 +3,8 @@
 
 plate_type = 't'; % 'w' or 't'
 
-bottom_left = [39.9,50.4];   %A
-top_right = [13.5,6.5];      %B
+bottom_left = [39.9,50.1];   %A
+top_right = [13.5,6.3];      %B
 
 cols_terasaki = upper(["a","b","c","d","e","f","g","h"]);
 rows_terasaki = ["1","2","3","4","5","6","7","8","9","10","11","12"];

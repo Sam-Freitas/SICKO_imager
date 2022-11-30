@@ -2,6 +2,7 @@ pause(0.1); clear all; close all force hidden
 disp('Start')
 % if matlab cant connect to the GRBL device then restart/powercycle everything and
 % plug/unplug the GRBL device
+mkdir('Data')
 warning('off', 'MATLAB:MKDIR:DirectoryExists');
 warning('off','serialport:serialport:ReadlineWarning');
 
@@ -41,8 +42,27 @@ disp('Beginning experiment')
 sorted_session_wells = sortrows(session_wells,"movement_order");
 num_wells_to_image = height(session_wells);
 
+vid = gigecam(1); % this is new sam added it 
+vid.BinningHorizontal = 3;
+vid.BinningVertical = 3;
+
+fig = figure('NumberTitle','off','MenuBar','none','Position', [1050 600 850 425]);
+fig.Name = session_path;
+
+ax = axes(fig);                    %adjusting figure size to video preview
+frame = snapshot(vid); 
+im = image(ax,zeros(size(frame),'uint8')); 
+axis(ax,'image');
+h = preview(vid, im);
+
 disp('Homing GRBL')
 stream_gcode_commands(ser,"$H",1)
+
+images_per_iter = 3;
+time_between_images = 0.1;
+
+fig2 = figure('NumberTitle','off','MenuBar','none','Position',[1050 100 850 425]); 
+fig2.Position = [1050 100 850 425];
 
 % send wakeup and homing gcode
 for i = 1:num_wells_to_image
@@ -59,7 +79,16 @@ for i = 1:num_wells_to_image
 
     pause(0.5)
 
+    images = take_N_images_every_X_seconds_gige(vid,images_per_iter,time_between_images);
+    write_images_to_session_new(session_path, images, this_well_label)
+
+    p = imshow(imresize(images{1,images_per_iter},[320,480])); %shows last image taken
+    drawnow;
+    fig2.Name = ['Well ', this_well_label];
+
 end
+closePreview(vid)
+close(fig)
 
 disp('Done');
 
