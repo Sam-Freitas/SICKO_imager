@@ -2,6 +2,7 @@
 % modified from the Worm Paparazzi inital script
 
 plate_type = 't'; % 'w' or 't'
+snake_mode = 1; % change to 0 if you want a different movement order
 
 bottom_left = [39.9,50.1];   %A
 top_right = [13.5,6.3];      %B
@@ -40,9 +41,9 @@ for i = 1:length(Z_cen2)
     I = insertText(I,[x,y],Z2(i),'FontSize',60,'BoxOpacity',0,'AnchorPoint','Center');
     I = rgb2gray(I);
 
-    well_key{i,1} = i;
-    well_key{i,2} = Z2(i);
-    well_key{i,3} = i;       %intensity = movement order
+    well_key{i,1} = i;       % intensity
+    well_key{i,2} = Z2(i);   % label
+    well_key{i,3} = i;       % movement order
 end
 
 I2 = zeros(size(I),'uint8');
@@ -64,13 +65,19 @@ k=0;
 for c = 1:8
     for r = 1:12
 
-        well_key{counter, 4} = round((bottom_left(1)-(delta_x*k)),2);  
-        well_key{counter, 5} = round((top_right(2)+(delta_y*j)),2);
+        well_key{counter, 4} = round((bottom_left(1)-(delta_x*k)),2);  %x position
+        well_key{counter, 5} = round((top_right(2)+(delta_y*j)),2);     %y position
         j = j + 1;
         counter = counter + 1;
     end
     j = 0;
     k = k+1;
+end
+
+if snake_mode
+    movement_table = readtable('snake_mode.xlsx');
+    snake_order = table2cell(movement_table);
+    well_key(:,3) = snake_order(:,1);
 end
 
 writetable(cell2table(well_key,'VariableNames',well_key_header), 'well_key.csv')
