@@ -30,9 +30,6 @@ def open_camera_and_capture_images():
     start_time = time.time()
     frame_count = 0
 
-    flip_updown = None
-    flip_leftright = None
-
     while True:
         # Capture frame-by-frame
         ret, frame = cap.read()
@@ -55,16 +52,6 @@ def open_camera_and_capture_images():
         key = cv2.waitKey(1) & 0xFF
         if key == 27:  # Break the loop if 'Esc' key is pressed
             break
-        elif key == 119 or flip_updown == 119:  # Up arrow key
-            flip_updown = 119
-            resized_frame = cv2.flip(resized_frame, 0)  # Flip vertically
-        elif key == 115 or flip_updown == 115:  # Down arrow key
-            flip_updown = 115
-            resized_frame = cv2.flip(resized_frame, 0)  # Flip vertically
-        elif key == 97:  # Left arrow key
-            resized_frame = cv2.flip(resized_frame, 1)  # Flip horizontally
-        elif key == 100:  # Right arrow key
-            resized_frame = cv2.flip(resized_frame, 1)  # Flip horizontally
 
         # Display the resized frame
         cv2.imshow('Camera', resized_frame)
