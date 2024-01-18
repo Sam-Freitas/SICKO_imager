@@ -6,8 +6,11 @@ def open_camera_and_capture_images():
     camera_index = 0
 
     # Open the camera
-    cap = cv2.VideoCapture(camera_index)
+    # cap = cv2.VideoCapture(camera_index)
 
+    # cap = cv2.VideoCapture(camera_index, cv2.CAP_ANY)
+    cap = cv2.VideoCapture(camera_index, cv2.CAP_ANY)
+    print(cap.getBackendName())
     if not cap.isOpened():
         print("Error: Could not open camera.")
         return
